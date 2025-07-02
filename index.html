@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>lumix</title>
+<style>
+ :root {
+   --bg: rgba(10, 10, 18, 0.95);
+   --bg-solid: #0a0a12;
+   --text: #e0e0ff;
+   --text-dim: #a0a0c0;
+   --accent: #bf00ff;
+   --accent-glow: 0 0 15px rgba(191, 0, 255, 0.5), 0 0 30px rgba(191, 0, 255, 0.3);
+   --prompt: #00aaff;
+   --error: #ff4757;
+   --warning: #ffa726;
+   --success: #26de81;
+   --glass: rgba(255, 255, 255, 0.05);
+   --glass-border: rgba(255, 255, 255, 0.1);
+   --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+ }
+ 
+ * {
+   box-sizing: border-box;
+ }
+ 
+ body {
+   margin: 0; 
+   padding: 0;
+   background: linear-gradient(135deg, 
+     rgba(16, 16, 32, 0.95) 0%, 
+     rgba(8, 8, 20, 0.95) 50%, 
+     rgba(4, 4, 12, 0.95) 100%);
+   backdrop-filter: blur(10px);
+   -webkit-backdrop-filter: blur(10px);
+   color: var(--text);
+   font-family: 'Cascadia Code', 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+   height: 100vh;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+   text-shadow: 0 0 8px rgba(191, 0, 255, 0.3);
+   -ms-overflow-style: none;
+   scrollbar-width: none;
+   /* Enable text selection globally */
+   -webkit-user-select: text;
+   -moz-user-select: text;
+   -ms-user-select: text;
+   user-select: text;
+ }
+
+ /* Hide all scrollbars */
+ ::-webkit-scrollbar { display: none; }
+ body { -ms-overflow-style: none; scrollbar-width: none; }
+
+ #title-bar {
+   -webkit-app-region: drag;
+   height: 36px;
+   background: linear-gradient(90deg, 
+     rgba(32, 0, 48, 0.9) 0%, 
+     rgba(58, 0, 104, 0.9) 50%, 
+     rgba(32, 0, 48, 0.9) 100%);
+   backdrop-filter: blur(20px);
+   -webkit-backdrop-filter: blur(20px);
+   display: flex;
+   align-items: center;
+   padding: 0 20px;
+   user-select: none;
+   border-bottom: 1px solid var(--glass-border);
+   box-shadow: var(--accent-glow), var(--shadow);
+   position: relative;
+ }
+
+ #title-bar::before {
+   content: '';
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   height: 1px;
+   background: linear-gradient(90deg, transparent, var(--accent), transparent);
+   opacity: 0.6;
+ }
+
+ #window-title {
+   color: var(--text);
+   flex-grow: 1;
+   font-size: 14px;
+   font-weight: 500;
+   letter-spacing: 1px;
+   display: flex;
+   align-items: center;
+   gap: 12px;
+ }
+
+ #terminal-icon {
+   width: 16px;
+   height: 16px;
+   background: var(--accent);
+   border-radius: 3px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 10px;
+   color: white;
+   font-weight: bold;
+ }
+
+ #shell-indicator {
+   background: linear-gradient(45deg, var(--accent), #8a2be2);
+   color: white;
+   padding: 3px 10px;
+   border-radius: 12px;
+   font-size: 11px;
+   font-weight: 600;
+   text-shadow: none;
+   box-shadow: 0 2px 8px rgba(191, 0, 255, 0.3);
+ }
+
+ #window-controls {
+   -webkit-app-region: no-drag;
+   display: flex;
+   gap: 10px;
+ }
+
+ .window-btn {
+   width: 16px;
+   height: 16px;
+   border-radius: 50%;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 10px;
+   font-weight: bold;
+   color: rgba(255, 255, 255, 0.8);
+   position: relative;
+   overflow: hidden;
+ }
+
+ .window-btn::before {
+   content: '';
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   border-radius: 50%;
+   opacity: 0;
+   transition: opacity 0.2s ease;
+ }
+
+ .window-btn:hover::before {
+   opacity: 0.2;
+   background: white;
+ }
+
+ .window-btn:hover {
+   transform: scale(1.1);
+   color: white;
+ }
+
+ #min-btn { background: linear-gradient(45deg, #ffbd2e, #ff9500); }
+ #max-btn { background: linear-gradient(45deg, #28ca42, #20a034); }
+ #close-btn { background: linear-gradient(45deg, #ff5f56, #e74c3c); }
+
+ #terminal {
+   flex-grow: 1;
+   padding: 20px;
+   display: flex;
+   flex-direction: column;
+   background: var(--bg);
+   overflow: hidden;
+   position: relative;
+ }
+
+ #terminal::before {
+   content: '';
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background: 
+     radial-gradient(circle at 20% 20%, rgba(191, 0, 255, 0.1) 0%, transparent 50%),
+     radial-gradient(circle at 80% 80%, rgba(0, 170, 255, 0.1) 0%, transparent 50%),
+     radial-gradient(circle at 40% 60%, rgba(138, 43, 226, 0.05) 0%, transparent 50%);
+   pointer-events: none;
+ }
+
+ #output-container {
+   flex-grow: 1;
+   overflow-y: auto;
+   display: flex;
+   flex-direction: column;
+   font-size: 14px;
+   line-height: 1.5;
+   position: relative;
+   z-index: 1;
+   -ms-overflow-style: none;
+   scrollbar-width: none;
+   /* Prevent focus stealing on click when not selecting text */
+   -webkit-user-select: text;
+   -moz-user-select: text;
+   -ms-user-select: text;
+   user-select: text;
+ }
+
+ #output-container::-webkit-scrollbar { display: none; }
+
+ .cmd-line {
+   display: flex;
+   align-items: flex-start;
+   margin: 3px 0;
+   font-family: inherit;
+   color: var(--text);
+   position: relative;
+   animation: fadeInUp 0.3s ease;
+ }
+
+ @keyframes fadeInUp {
+   from {
+     opacity: 0;
+     transform: translateY(10px);
+   }
+   to {
+     opacity: 1;
+     transform: translateY(0);
+   }
+ }
+
+ .prompt {
+   color: var(--prompt);
+   margin-right: 12px;
+   font-weight: 600;
+   text-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+   white-space: nowrap;
+   user-select: none;
+   min-width: fit-content;
+ }
+
+ .prompt .path {
+   color: #7c3aed;
+   text-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+ }
+
+ .input-wrapper {
+   position: relative;
+   flex-grow: 1;
+   min-width: 0;
+ }
+
+ .command-input {
+   background: transparent;
+   border: none;
+   outline: none;
+   color: var(--text);
+   font-family: inherit;
+   font-size: inherit;
+   width: 100%;
+   caret-color: var(--accent);
+   position: relative;
+   z-index: 2;
+   line-height: 1.5;
+   padding: 2px 0;
+ }
+
+ .command-input:disabled {
+   opacity: 0.5;
+   cursor: not-allowed;
+ }
+
+ .command-input:focus {
+   background: rgba(191, 0, 255, 0.05);
+   border-radius: 4px;
+   padding: 2px 6px;
+   margin: -2px -6px;
+   box-shadow: 0 0 0 1px rgba(191, 0, 255, 0.3);
+ }
+
+ .autocomplete-overlay {
+   position: absolute;
+   top: 2px;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   color: var(--text-dim);
+   opacity: 0.5;
+   font-style: italic;
+   pointer-events: none;
+   font-family: inherit;
+   font-size: inherit;
+   white-space: pre;
+   user-select: none;
+   z-index: 1;
+   line-height: 1.5;
+ }
+
+ .output {
+   margin-left: 2.5em;
+   white-space: pre-wrap;
+   color: var(--text);
+   font-family: inherit;
+   word-wrap: break-word;
+   overflow-wrap: break-word;
+   padding: 2px 0;
+   animation: fadeIn 0.2s ease;
+   /* Better Unicode and special character rendering */
+   font-variant-ligatures: none;
+   font-feature-settings: "liga" 0;
+   -webkit-font-smoothing: antialiased;
+   -moz-osx-font-smoothing: grayscale;
+   unicode-bidi: embed;
+   direction: ltr;
+ }
+
+ @keyframes fadeIn {
+   from { opacity: 0; }
+   to { opacity: 1; }
+ }
+
+ .error {
+   color: var(--error);
+   margin-left: 2.5em;
+   white-space: pre-wrap;
+   word-wrap: break-word;
+   overflow-wrap: break-word;
+   padding: 2px 0;
+   background: rgba(255, 71, 87, 0.1);
+   border-left: 3px solid var(--error);
+   padding-left: 8px;
+   margin-left: 2em;
+   border-radius: 0 4px 4px 0;
+   font-variant-ligatures: none;
+   font-feature-settings: "liga" 0;
+ }
+
+ .warning {
+   color: var(--warning);
+   margin-left: 2.5em;
+   white-space: pre-wrap;
+   padding: 2px 0;
+   background: rgba(255, 167, 38, 0.1);
+   border-left: 3px solid var(--warning);
+   padding-left: 8px;
+   margin-left: 2em;
+   border-radius: 0 4px 4px 0;
+   font-variant-ligatures: none;
+   font-feature-settings: "liga" 0;
+ }
+
+ .success {
+   color: var(--success);
+   margin-left: 2.5em;
+   white-space: pre-wrap;
+   padding: 2px 0;
+   background: rgba(38, 222, 129, 0.1);
+   border-left: 3px solid var(--success);
+   padding-left: 8px;
+   margin-left: 2em;
+   border-radius: 0 4px 4px 0;
+   font-variant-ligatures: none;
+   font-feature-settings: "liga" 0;
+ }
+
+ .status-indicator {
+   position: absolute;
+   top: 20px;
+   right: 20px;
+   background: var(--glass);
+   backdrop-filter: blur(10px);
+   -webkit-backdrop-filter: blur(10px);
+   border: 1px solid var(--glass-border);
+   color: white;
+   padding: 8px 16px;
+   border-radius: 20px;
+   font-size: 12px;
+   font-weight: 500;
+   opacity: 0;
+   transition: all 0.3s ease;
+   box-shadow: var(--shadow);
+   z-index: 10;
+ }
+
+ .status-indicator.show {
+   opacity: 1;
+   transform: translateY(0);
+ }
+
+ .status-indicator.running {
+   background: linear-gradient(45deg, var(--accent), #8a2be2);
+   animation: pulse 2s infinite;
+ }
+
+ @keyframes pulse {
+   0%, 100% { 
+     box-shadow: 0 0 0 0 rgba(191, 0, 255, 0.7);
+   }
+   50% { 
+     box-shadow: 0 0 0 10px rgba(191, 0, 255, 0);
+   }
+ }
+
+ .command-running {
+   color: var(--warning);
+   font-style: italic;
+ }
+
+ /* Enhanced selection styling */
+ ::selection {
+   background: rgba(191, 0, 255, 0.4);
+   color: white;
+ }
+
+ ::-moz-selection {
+   background: rgba(191, 0, 255, 0.4);
+   color: white;
+ }
+
+ /* Context menu styling */
+ .context-menu {
+   position: fixed;
+   background: var(--glass);
+   backdrop-filter: blur(20px);
+   -webkit-backdrop-filter: blur(20px);
+   border: 1px solid var(--glass-border);
+   border-radius: 8px;
+   padding: 4px 0;
+   box-shadow: var(--shadow);
+   z-index: 1000;
+   font-size: 13px;
+   min-width: 120px;
+   display: none;
+ }
+
+ .context-menu-item {
+   padding: 8px 16px;
+   cursor: pointer;
+   color: var(--text);
+   transition: background-color 0.2s ease;
+   user-select: none;
+ }
+
+ .context-menu-item:hover {
+   background: rgba(191, 0, 255, 0.2);
+ }
+
+ .context-menu-item:disabled,
+ .context-menu-item.disabled {
+   color: var(--text-dim);
+   cursor: not-allowed;
+   opacity: 0.5;
+ }
+
+ .context-menu-separator {
+   height: 1px;
+   background: var(--glass-border);
+   margin: 4px 0;
+ }
+
+ /* Responsive adjustments */
+ @media (max-width: 768px) {
+   #terminal {
+     padding: 15px;
+   }
+   
+   .output, .error, .warning, .success {
+     margin-left: 1.5em;
+   }
+   
+   .prompt {
+     margin-right: 8px;
+   }
+ }
+
+ /* Loading animation for startup */
+ .startup-message {
+   color: var(--accent);
+   text-align: center;
+   padding: 20px;
+   animation: glow 2s ease-in-out infinite alternate;
+   font-variant-ligatures: none;
+   font-feature-settings: "liga" 0;
+ }
+
+ @keyframes glow {
+   from {
+     text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent), 0 0 30px var(--accent);
+   }
+   to {
+     text-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent), 0 0 15px var(--accent);
+   }
+ }
+
+ /* Copy notification */
+ .copy-notification {
+   position: fixed;
+   top: 50%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   background: var(--success);
+   color: white;
+   padding: 10px 20px;
+   border-radius: 6px;
+   font-size: 14px;
+   font-weight: 500;
+   z-index: 2000;
+   opacity: 0;
+   transition: opacity 0.3s ease;
+   pointer-events: none;
+ }
+
+ .copy-notification.show {
+   opacity: 1;
+ }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+ <div id="title-bar">
+   <div id="window-title">
+     <div id="terminal-icon">◉</div>
+     <span>Lumix Terminal</span>
+     <span id="shell-indicator">CMD</span>
+   </div>
+   <div id="window-controls">
+     <div class="window-btn" id="min-btn" title="Minimize"></div>
+     <div class="window-btn" id="max-btn" title="Maximize"></div>
+     <div class="window-btn" id="close-btn" title="Close"></div>
+   </div>
+ </div>
+
+ <div id="terminal">
+   <div id="output-container" tabindex="0"></div>
+   <div id="status-indicator" class="status-indicator"></div>
+ </div>
+
+ <!-- Context Menu -->
+ <div id="context-menu" class="context-menu">
+   <div class="context-menu-item" id="copy-item">Copy</div>
+   <div class="context-menu-item" id="paste-item">Paste</div>
+   <div class="context-menu-separator"></div>
+   <div class="context-menu-item" id="select-all-item">Select All</div>
+ </div>
+
+ <!-- Copy Notification -->
+ <div id="copy-notification" class="copy-notification">Copied to clipboard!</div>
+
+<script>
+ const { ipcRenderer } = require('electron');
+ const { spawn } = require('child_process');
+ const { clipboard } = require('electron');
+ const path = require('path');
+ const os = require('os');
+ 
+ const outputContainer = document.getElementById('output-container');
+ const statusIndicator = document.getElementById('status-indicator');
+ const shellIndicator = document.getElementById('shell-indicator');
+ const contextMenu = document.getElementById('context-menu');
+ const copyNotification = document.getElementById('copy-notification');
+ 
+ let currentDirectory = process.cwd();
+ let isCommandRunning = false;
+ let currentShell = 'cmd';
+ let currentProcess = null;
+ let lastSelection = '';
+
+ // Window controls
+ document.getElementById('min-btn').addEventListener('click', () => {
+   ipcRenderer.send('window-control', 'minimize');
+ });
+
+ document.getElementById('max-btn').addEventListener('click', () => {
+   ipcRenderer.send('window-control', 'maximize');
+ });
+
+ document.getElementById('close-btn').addEventListener('click', () => {
+   if (currentProcess) {
+     currentProcess.kill();
+   }
+   ipcRenderer.send('window-control', 'close');
+ });
+
+ // Enhanced command lists for different shells
+ const commandSets = {
+   cmd: [
+     'dir', 'cd', 'cls', 'copy', 'del', 'move', 'md', 'mkdir', 'rd', 'rmdir',
+     'type', 'echo', 'tree', 'attrib', 'find', 'findstr', 'where', 'whoami',
+     'ping', 'ipconfig', 'netstat', 'tasklist', 'taskkill', 'systeminfo',
+     'help', 'exit', 'color', 'title', 'ver', 'date', 'time', 'vol',
+     'diskpart', 'format', 'chkdsk', 'sfc', 'dism', 'powershell', 'start',
+     'pushd', 'popd', 'assoc', 'ftype', 'set', 'path', 'robocopy', 'xcopy'
+   ],
+   powershell: [
+     'Get-ChildItem', 'Set-Location', 'Clear-Host', 'Copy-Item', 'Remove-Item',
+     'Move-Item', 'New-Item', 'Get-Content', 'Set-Content', 'Add-Content',
+     'Get-Process', 'Stop-Process', 'Get-Service', 'Start-Service', 'Stop-Service',
+     'Test-Connection', 'Get-NetAdapter', 'Get-EventLog', 'Get-WmiObject',
+     'Invoke-Command', 'Get-Help', 'exit', 'cmd', 'ls', 'cat', 'ps', 'kill'
+   ]
+ };
+
+ // Command history
+ let history = [];
+ let historyIndex = -1;
+
+ // Initialize with enhanced welcome message
+ addStartupMessage();
+
+ function addStartupMessage() {
+   const welcome = document.createElement('div');
+   welcome.className = 'startup-message';
+   welcome.innerHTML = `
+  lumix
+  v3.1
+   `;
+   outputContainer.appendChild(welcome);
+   
+   setTimeout(() => {
+     addOutput(`Microsoft Windows [Version ${os.release()}]`);
+     addOutput(`(c) Microsoft Corporation. All rights reserved.`);
+     addSuccess(`Terminal ready • Current shell: ${currentShell.toUpperCase()}\n`);
+     createInputLine();
+   }, 1000);
+ }
+
+ function createInputLine() {
+   if (isCommandRunning) return;
+
+   const line = document.createElement('div');
+   line.className = 'cmd-line';
+
+   const prompt = document.createElement('div');
+   prompt.className = 'prompt';
+   
+   // Enhanced prompt with better path formatting
+   const shortPath = currentDirectory.length > 50 
+     ? '...' + currentDirectory.slice(-47) 
+     : currentDirectory;
+   prompt.innerHTML = `<span class="path">${shortPath.replace(/\\/g, '/')}</span><span style="color: var(--accent);">❯</span>`;
+
+   const inputWrapper = document.createElement('div');
+   inputWrapper.className = 'input-wrapper';
+
+   const input = document.createElement('input');
+   input.type = 'text';
+   input.className = 'command-input';
+   input.autocomplete = 'off';
+   input.spellcheck = false;
+   input.placeholder = 'Enter command...';
+
+   const autocompleteOverlay = document.createElement('div');
+   autocompleteOverlay.className = 'autocomplete-overlay';
+
+   inputWrapper.appendChild(input);
+   inputWrapper.appendChild(autocompleteOverlay);
+   line.appendChild(prompt);
+   line.appendChild(inputWrapper);
+
+   outputContainer.appendChild(line);
+   input.focus();
+   smoothScrollToBottom();
+
+   function updateAutocomplete() {
+     const val = input.value.toLowerCase().trim();
+     if (!val) {
+       autocompleteOverlay.textContent = '';
+       return;
+     }
+     
+     const commands = commandSets[currentShell] || commandSets.cmd;
+     const match = commands.find(c => c.toLowerCase().startsWith(val));
+     
+     if (match && match.length > val.length) {
+       autocompleteOverlay.textContent = val + match.substring(val.length);
+     } else {
+       autocompleteOverlay.textContent = '';
+     }
+   }
+
+   input.addEventListener('input', updateAutocomplete);
+
+   input.addEventListener('keydown', (e) => {
+     if (e.key === 'Enter') {
+       e.preventDefault();
+       const rawCmd = input.value.trim();
+
+       if (rawCmd.length > 0) {
+         history.push(rawCmd);
+         historyIndex = -1;
+       }
+
+       // Disable input during command execution
+       input.disabled = true;
+       input.style.opacity = '0.5';
+
+       const cmdText = document.createElement('div');
+       cmdText.textContent = rawCmd || ' ';
+       cmdText.style.flexGrow = '1';
+       cmdText.style.color = 'var(--text-dim)';
+
+       inputWrapper.parentNode.replaceChild(cmdText, inputWrapper);
+       executeCommand(rawCmd);
+       
+     } else if (e.key === 'ArrowUp') {
+       e.preventDefault();
+       if (history.length && historyIndex < history.length - 1) {
+         historyIndex++;
+         input.value = history[history.length - 1 - historyIndex];
+         updateAutocomplete();
+       }
+     } else if (e.key === 'ArrowDown') {
+       e.preventDefault();
+       if (historyIndex > 0) {
+         historyIndex--;
+         input.value = history[history.length - 1 - historyIndex];
+         updateAutocomplete();
+       } else {
+         historyIndex = -1;
+         input.value = '';
+         autocompleteOverlay.textContent = '';
+       }
+     } else if (e.key === 'Tab') {
+       e.preventDefault();
+       const val = input.value.toLowerCase().trim();
+       const commands = commandSets[currentShell] || commandSets.cmd;
+       const match = commands.find(c => c.toLowerCase().startsWith(val));
+       if (match) {
+         input.value = match;
+         updateAutocomplete();
+       }
+     } else if (e.key === 'Escape') {
+       e.preventDefault();
+       input.value = '';
+       autocompleteOverlay.textContent = '';
+     } else if (e.ctrlKey && e.key === 'c' && currentProcess) {
+       e.preventDefault();
+       currentProcess.kill('SIGINT');
+       addWarning('\n^C Process interrupted by user');
+     } else if (e.ctrlKey && e.key === 'v') {
+       // Handle paste in input
+       e.preventDefault();
+       const clipText = clipboard.readText();
+       if (clipText) {
+         const cursorPos = input.selectionStart;
+         const textBefore = input.value.substring(0, cursorPos);
+         const textAfter = input.value.substring(input.selectionEnd);
+         input.value = textBefore + clipText + textAfter;
+         input.selectionStart = input.selectionEnd = cursorPos + clipText.length;
+         updateAutocomplete();
+       }
+     }
+   });
+ }
+
+ function executeCommand(command) {
+   if (!command.trim()) {
+     createInputLine();
+     return;
+   }
+
+   isCommandRunning = true;
+   showStatus('Executing...', 'running');
+
+   const cmd = command.toLowerCase().trim();
+   
+   // Handle shell switching
+   if (cmd === 'powershell' || cmd === 'pwsh') {
+     currentShell = 'powershell';
+     shellIndicator.textContent = 'PS';
+     addSuccess('🔄 Switched to PowerShell');
+     isCommandRunning = false;
+     hideStatus();
+     createInputLine();
+     return;
+   }
+
+   if (cmd === 'cmd') {
+     currentShell = 'cmd';
+     shellIndicator.textContent = 'CMD';
+     addSuccess('🔄 Switched to Command Prompt');
+     isCommandRunning = false;
+     hideStatus();
+     createInputLine();
+     return;
+   }
+
+   // Handle 'cls' or 'clear' command
+   if (cmd === 'cls' || cmd === 'clear') {
+     outputContainer.innerHTML = '';
+     isCommandRunning = false;
+     hideStatus();
+     createInputLine();
+     return;
+   }
+
+   // Handle 'exit' command
+   if (cmd === 'exit') {
+     if (currentProcess) {
+       currentProcess.kill();
+     }
+     ipcRenderer.send('window-control', 'close');
+     return;
+   }
+
+   // Handle 'cd' command with better error handling
+   if (cmd.startsWith('cd ') || cmd === 'cd') {
+     const newPath = command.substring(2).trim() || os.homedir();
+     try {
+       let targetPath;
+       if (newPath === '..') {
+         targetPath = path.dirname(currentDirectory);
+       } else if (newPath.match(/^[a-zA-Z]:$/)) {
+         targetPath = newPath + '\\';
+       } else if (path.isAbsolute(newPath)) {
+         targetPath = newPath;
+       } else {
+         targetPath = path.join(currentDirectory, newPath);
+       }
+       
+       process.chdir(targetPath);
+       currentDirectory = process.cwd();
+       addSuccess(`📁 Changed directory to: ${currentDirectory}`);
+     } catch (error) {
+       addError(`❌ The system cannot find the path specified: ${newPath}`);
+     }
+     isCommandRunning = false;
+     hideStatus();
+     createInputLine();
+     return;
+   }
+
+   // Execute the command with proper shell and better encoding handling
+   const shell = currentShell === 'powershell' ? 'powershell' : 'cmd';
+   const shellArgs = currentShell === 'powershell' ? ['-Command', command] : ['/c', command];
+   
+   currentProcess = spawn(shell, shellArgs, {
+     cwd: currentDirectory,
+     shell: true,
+     stdio: ['pipe', 'pipe', 'pipe'],
+     encoding: 'utf8',
+     env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+   });
+
+   let output = '';
+   let errorOutput = '';
+
+   currentProcess.stdout.on('data', (data) => {
+     output += data.toString('utf8');
+   });
+
+   currentProcess.stderr.on('data', (data) => {
+     errorOutput += data.toString('utf8');
+   });
+
+   currentProcess.on('close', (code) => {
+    currentProcess = null;
+    isCommandRunning = false;
+    hideStatus();
+
+    if (output.trim()) {
+      addOutput(sanitizeOutput(output));
+    }
+    if (errorOutput.trim()) {
+      addError(sanitizeOutput(errorOutput));
+    }
+    
+    // Show exit code if command failed
+    if (code !== 0 && code !== null) {
+      addWarning(`⚠️ Command exited with code: ${code}`);
+    }
+    
+    // Update current directory after command execution
+    try {
+      currentDirectory = process.cwd();
+    } catch (e) {
+      currentDirectory = os.homedir();
+      process.chdir(currentDirectory);
+      addWarning('🏠 Reset to home directory due to path error');
+    }
+    
+    createInputLine();
+  });
+
+  currentProcess.on('error', (error) => {
+    currentProcess = null;
+    isCommandRunning = false;
+    hideStatus();
+    
+    if (error.code === 'ENOENT') {
+      addError(`❌ '${command.split(' ')[0]}' is not recognized as an internal or external command,\noperable program or batch file.`);
+    } else {
+      addError(`❌ Error executing command: ${error.message}`);
+    }
+    createInputLine();
+  });
+}
+
+// Function to sanitize and improve special character display
+function sanitizeOutput(text) {
+  // Handle common Windows special characters and symbols
+  return text
+    .replace(/\u00A0/g, ' ')  // Non-breaking space
+    .replace(/\u2013/g, '-')  // En dash
+    .replace(/\u2014/g, '--') // Em dash
+    .replace(/\u2018/g, "'")  // Left single quotation mark
+    .replace(/\u2019/g, "'")  // Right single quotation mark
+    .replace(/\u201C/g, '"')  // Left double quotation mark
+    .replace(/\u201D/g, '"')  // Right double quotation mark
+    .replace(/\u2026/g, '...') // Horizontal ellipsis
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '') // Remove control characters except \t, \n, \r
+    .replace(/\u00B0/g, '°')  // Degree symbol
+    .replace(/\u00B5/g, 'µ')  // Micro sign
+    .replace(/\u00A9/g, '©')  // Copyright symbol
+    .replace(/\u00AE/g, '®'); // Registered trademark symbol
+}
+
+function addOutput(text) {
+  if (!text.trim()) return;
+  const output = document.createElement('pre');
+  output.className = 'output';
+  output.textContent = text;
+  outputContainer.appendChild(output);
+  smoothScrollToBottom();
+}
+
+function addError(text) {
+  if (!text.trim()) return;
+  const output = document.createElement('pre');
+  output.className = 'error';
+  output.textContent = text;
+  outputContainer.appendChild(output);
+  smoothScrollToBottom();
+}
+
+function addWarning(text) {
+  if (!text.trim()) return;
+  const output = document.createElement('pre');
+  output.className = 'warning';
+  output.textContent = text;
+  outputContainer.appendChild(output);
+  smoothScrollToBottom();
+}
+
+function addSuccess(text) {
+  if (!text.trim()) return;
+  const output = document.createElement('pre');
+  output.className = 'success';
+  output.textContent = text;
+  outputContainer.appendChild(output);
+  smoothScrollToBottom();
+}
+
+function showStatus(message, type) {
+  statusIndicator.textContent = message;
+  statusIndicator.className = `status-indicator show ${type}`;
+}
+
+function hideStatus() {
+  statusIndicator.classList.remove('show');
+}
+
+function smoothScrollToBottom() {
+  requestAnimationFrame(() => {
+    outputContainer.scrollTo({
+      top: outputContainer.scrollHeight,
+      behavior: 'smooth'
+    });
+  });
+}
+
+// Enhanced copy/paste functionality
+function copyToClipboard(text) {
+  clipboard.writeText(text);
+  showCopyNotification();
+}
+
+function showCopyNotification() {
+  copyNotification.classList.add('show');
+  setTimeout(() => {
+    copyNotification.classList.remove('show');
+  }, 1500);
+}
+
+function getSelectedText() {
+  return window.getSelection().toString();
+}
+
+function selectAllText() {
+  const range = document.createRange();
+  range.selectNodeContents(outputContainer);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+// Context menu functionality
+function showContextMenu(x, y) {
+  const selectedText = getSelectedText();
+  const clipboardText = clipboard.readText();
+  
+  // Update menu item states
+  document.getElementById('copy-item').classList.toggle('disabled', !selectedText);
+  document.getElementById('paste-item').classList.toggle('disabled', !clipboardText);
+  
+  contextMenu.style.left = x + 'px';
+  contextMenu.style.top = y + 'px';
+  contextMenu.style.display = 'block';
+  
+  // Position adjustment to keep menu in viewport
+  const rect = contextMenu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) {
+    contextMenu.style.left = (x - rect.width) + 'px';
+  }
+  if (rect.bottom > window.innerHeight) {
+    contextMenu.style.top = (y - rect.height) + 'px';
+  }
+}
+
+function hideContextMenu() {
+  contextMenu.style.display = 'none';
+}
+
+// Event listeners for enhanced copy/paste functionality
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (!isCommandRunning) {
+    showContextMenu(e.clientX, e.clientY);
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!contextMenu.contains(e.target)) {
+    hideContextMenu();
+  }
+});
+
+// Context menu item handlers
+document.getElementById('copy-item').addEventListener('click', () => {
+  const selectedText = getSelectedText();
+  if (selectedText) {
+    copyToClipboard(selectedText);
+  }
+  hideContextMenu();
+});
+
+document.getElementById('paste-item').addEventListener('click', () => {
+  const clipText = clipboard.readText();
+  if (clipText && !isCommandRunning) {
+    const inputs = outputContainer.getElementsByTagName('input');
+    if (inputs.length > 0) {
+      const input = inputs[inputs.length - 1];
+      const cursorPos = input.selectionStart || input.value.length;
+      const textBefore = input.value.substring(0, cursorPos);
+      const textAfter = input.value.substring(input.selectionEnd || cursorPos);
+      input.value = textBefore + clipText + textAfter;
+      input.selectionStart = input.selectionEnd = cursorPos + clipText.length;
+      input.focus();
+    }
+  }
+  hideContextMenu();
+});
+
+document.getElementById('select-all-item').addEventListener('click', () => {
+  selectAllText();
+  hideContextMenu();
+});
+
+// Enhanced keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'c' && !isCommandRunning) {
+    const selectedText = getSelectedText();
+    if (selectedText) {
+      e.preventDefault();
+      copyToClipboard(selectedText);
+    }
+  } else if (e.ctrlKey && e.key === 'a') {
+    if (!isCommandRunning && !document.activeElement.classList.contains('command-input')) {
+      e.preventDefault();
+      selectAllText();
+    }
+  } else if (e.ctrlKey && e.key === 'l') {
+    e.preventDefault();
+    // Clear screen
+    outputContainer.innerHTML = '';
+    createInputLine();
+  } else if (e.key === 'Escape') {
+    hideContextMenu();
+    // Clear selection
+    window.getSelection().removeAllRanges();
+  }
+});
+
+// Improved click handling - only focus input if not selecting text
+let mouseDownTime = 0;
+let mouseDownPos = { x: 0, y: 0 };
+
+outputContainer.addEventListener('mousedown', (e) => {
+  mouseDownTime = Date.now();
+  mouseDownPos = { x: e.clientX, y: e.clientY };
+});
+
+outputContainer.addEventListener('mouseup', (e) => {
+  const timeDiff = Date.now() - mouseDownTime;
+  const posDiff = Math.abs(e.clientX - mouseDownPos.x) + Math.abs(e.clientY - mouseDownPos.y);
+  
+  // Only focus input if it was a quick click without significant mouse movement
+  // and no text is currently selected
+  if (timeDiff < 200 && posDiff < 5 && !getSelectedText() && !isCommandRunning) {
+    const inputs = outputContainer.getElementsByTagName('input');
+    if (inputs.length > 0) {
+      inputs[inputs.length - 1].focus();
+    }
+  }
+});
+
+// Handle text selection changes
+document.addEventListener('selectionchange', () => {
+  lastSelection = getSelectedText();
+});
+
+// Handle window focus
+window.addEventListener('focus', () => {
+  if (!isCommandRunning && !lastSelection) {
+    const inputs = outputContainer.getElementsByTagName('input');
+    if (inputs.length > 0) {
+      inputs[inputs.length - 1].focus();
+    }
+  }
+});
+
+// Prevent default drag behavior on output text
+outputContainer.addEventListener('dragstart', (e) => {
+  e.preventDefault();
+});
+
+// Handle double-click for word selection
+outputContainer.addEventListener('dblclick', (e) => {
+  if (e.target.classList.contains('output') || 
+      e.target.classList.contains('error') || 
+      e.target.classList.contains('warning') || 
+      e.target.classList.contains('success')) {
+    // Let browser handle word selection naturally
+    e.stopPropagation();
+  }
+});
+</script>
+</body>
+</html>
